@@ -175,7 +175,7 @@
   .brush-preview{ width:26px; height:26px; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
   .brush-preview i{ display:block; border-radius:50%; }
   #brushPreviewDot{ background:#ff8b5e; }
-  #eraserPreviewDot{ background:transparent; border:2px dashed var(--ink-dim); box-sizing:border-box; }
+  #eraserPreviewDot{ background:transparent; border:2px dashed rgba(255,255,255,0.9); box-sizing:border-box; }
   .brush-size-val{ font-size:11px; color:var(--ink-dim); width:30px; text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums; }
 
   .modal-footer{ display:flex; justify-content:space-between; gap:10px; margin-top:16px; }
@@ -1035,10 +1035,15 @@ function styleBrushCursor(){
     brushCursor.style.opacity = penOpacity;
   }
 }
-function positionBrushCursorAt(clientX, clientY){
+function positionBrushCursorAt(e){
   var rect = drawCanvas.getBoundingClientRect();
-  brushCursor.style.left = (clientX-rect.left)+'px';
-  brushCursor.style.top = (clientY-rect.top)+'px';
+  var lx = e.clientX-rect.left, ly = e.clientY-rect.top;
+  // a finger physically covers the spot it's touching, so float the
+  // preview above the fingertip for touch input; mouse/pen have no such
+  // occlusion, so keep it exactly under the cursor there.
+  var offsetY = (e.pointerType==='touch') ? -48 : 0;
+  brushCursor.style.left = lx+'px';
+  brushCursor.style.top = (ly+offsetY)+'px';
 }
 var sizePreviewHideTimer = null;
 function showSizePreviewAtCenter(){
@@ -1054,7 +1059,7 @@ function showSizePreviewAtCenter(){
 drawCanvas.addEventListener('pointerenter', function(e){
   if(currentTool==='bucket') return;
   styleBrushCursor();
-  positionBrushCursorAt(e.clientX, e.clientY);
+  positionBrushCursorAt(e);
   brushCursor.style.display = 'block';
 });
 drawCanvas.addEventListener('pointerleave', function(){
@@ -1194,7 +1199,7 @@ drawCanvas.addEventListener('pointerdown', function(e){
 });
 drawCanvas.addEventListener('pointermove', function(e){
   if(currentTool!=='bucket'){
-    positionBrushCursorAt(e.clientX, e.clientY);
+    positionBrushCursorAt(e);
     brushCursor.style.display = 'block';
   }
   if(!drawing) return;
