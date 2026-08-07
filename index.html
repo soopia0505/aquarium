@@ -432,6 +432,8 @@ function makeFishFromDataURL(dataURL, w, h, sizeFactor){
     y: topArcY(W/2) + 30 + Math.random()*(bottomArcY(W/2)-topArcY(W/2)-70),
     dir: Math.random()<0.5?-1:1,
     speed: 30+Math.random()*40,
+    vy: (Math.random()-0.5)*20,
+    yWanderTimer: 1.5+Math.random()*3,
     scale: (0.45+Math.random()*0.3) * (sizeFactor||1),
     bobAmp: 8+Math.random()*10,
     bobFreq: 0.8+Math.random()*0.6,
@@ -446,11 +448,28 @@ function makeFishFromDataURL(dataURL, w, h, sizeFactor){
 
 function updateAndDrawFish(f, dt){
   f.t += dt;
-  var baseY = f.y + Math.sin(f.t*f.bobFreq+f.bobPhase)*f.bobAmp;
   f.x += f.dir*f.speed*dt;
   var margin = 80*f.scale*globalFishScale;
   if(f.dir>0 && f.x > W+margin) f.x = -margin;
   if(f.dir<0 && f.x < -margin) f.x = W+margin;
+
+  /* wander vertically too, so fish roam the whole tunnel instead of
+     staying near the height they were born at. Every couple of seconds
+     pick a new gentle vertical drift, and clamp position to the tunnel's
+     *local* opening at the fish's current x (the opening narrows near
+     the edges) so it never drifts into the clipped-away area and vanish. */
+  f.yWanderTimer -= dt;
+  if(f.yWanderTimer<=0){
+    f.yWanderTimer = 2+Math.random()*3.5;
+    f.vy = (Math.random()-0.5)*28;
+  }
+  f.y += f.vy*dt;
+  var topB = topArcY(f.x)+26, botB = bottomArcY(f.x)-26;
+  if(botB<topB){ var mid=(topB+botB)/2; topB=mid-1; botB=mid+1; }
+  if(f.y<topB){ f.y=topB; f.vy=Math.abs(f.vy); }
+  if(f.y>botB){ f.y=botB; f.vy=-Math.abs(f.vy); }
+
+  var baseY = f.y + Math.sin(f.t*f.bobFreq+f.bobPhase)*f.bobAmp;
 
   if(!f.ready) return;
   var w = f.w*f.scale*globalFishScale, h=f.h*f.scale*globalFishScale;
