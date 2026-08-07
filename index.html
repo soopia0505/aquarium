@@ -426,14 +426,16 @@ var globalFishScale = parseFloat(localStorage.getItem('aq_fishscale_v1')) || 0.7
 
 function makeFishFromDataURL(dataURL, w, h, sizeFactor){
   var img = new Image();
+  var vAmp = 12 + Math.random()*64; // each fish gets its own up/down "wave" range — some drift a little, some swing wide
   var f = {
     img:img, ready:false, w:w, h:h,
     x: Math.random()*W,
     y: topArcY(W/2) + 30 + Math.random()*(bottomArcY(W/2)-topArcY(W/2)-70),
     dir: Math.random()<0.5?-1:1,
     speed: 16+Math.random()*74,
-    vy: (Math.random()-0.5)*30,
-    yWanderTimer: 1.5+Math.random()*3,
+    vAmp: vAmp,
+    vy: (Math.random()-0.5)*2*vAmp,
+    yWanderTimer: 1.2+Math.random()*4.5,
     hidden: false,
     hideTimer: 0,
     scale: (0.45+Math.random()*0.3) * (sizeFactor||1),
@@ -452,9 +454,8 @@ function updateAndDrawFish(f, dt){
   f.t += dt;
 
   /* once the fish has fully left the visible area, it "leaves the tank"
-     for a random 3-10s before swimming back in from the same side it
-     exited through — rather than bouncing right at the glass or
-     teleporting to the opposite wall. */
+     for a random 3-10s before swimming back in from the OPPOSITE side —
+     like it crossed the whole tank out of view. */
   if(f.hidden){
     f.hideTimer -= dt;
     if(f.hideTimer > 0) return; // out of view, nothing to update or draw
@@ -463,8 +464,9 @@ function updateAndDrawFish(f, dt){
     if(f.reentrySide>0){ f.x = W+halfW0; f.dir = -1; }
     else { f.x = -halfW0; f.dir = 1; }
     f.y = topArcY(W/2) + 30 + Math.random()*(bottomArcY(W/2)-topArcY(W/2)-70);
-    f.vy = (Math.random()-0.5)*30;
-    f.yWanderTimer = 1.5+Math.random()*3;
+    f.vy = (Math.random()-0.5)*2*f.vAmp;
+    f.yWanderTimer = 1.2+Math.random()*4.5;
+    f.speed = 16+Math.random()*74;
   }
 
   f.x += f.dir*f.speed*dt;
@@ -472,7 +474,7 @@ function updateAndDrawFish(f, dt){
   var halfW = 0.5*f.w*f.scale*globalFishScale;
   if((f.dir>0 && f.x-halfW>W) || (f.dir<0 && f.x+halfW<0)){
     f.hidden = true;
-    f.reentrySide = f.dir;
+    f.reentrySide = -f.dir; // opposite side, always
     f.hideTimer = 3+Math.random()*7;
     return;
   }
@@ -483,8 +485,8 @@ function updateAndDrawFish(f, dt){
      more of the tank being used rather than a bug. */
   f.yWanderTimer -= dt;
   if(f.yWanderTimer<=0){
-    f.yWanderTimer = 1.5+Math.random()*3;
-    f.vy = (Math.random()-0.5)*46;
+    f.yWanderTimer = 1.2+Math.random()*4.5;
+    f.vy = (Math.random()-0.5)*2*f.vAmp;
   }
   f.y += f.vy*dt;
   var topB = topArcY(f.x)-14, botB = bottomArcY(f.x)+14;
