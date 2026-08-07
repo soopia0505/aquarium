@@ -1,1 +1,906 @@
-<!DOCTYPE html> <html lang="ko"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"> <title>수중 터널 — 물고기 미디어아트</title> <style> :root{ --bg:#0b0e12; --panel:#12161c; --panel-line:#232a33; --ink:#eef1ee; --ink-dim:#9aa5ad; --paper:#fbf6ec; --accent:#7fd4c1; } *{box-sizing:border-box;} html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font-family:"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif; } #scene{ position:absolute; inset:0; display:block; touch-action:none; } /* ---------- top bar ---------- */ .topbar{ position:absolute; top:0; left:0; right:0; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:14px 18px; z-index:10; pointer-events:none; } .topbar > *{ pointer-events:auto; } .brand{ font-size:13px; letter-spacing:.08em; color:var(--ink-dim); text-transform:uppercase; font-weight:600; display:flex; align-items:center; gap:8px; } .brand .dot{ width:6px;height:6px;border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); } .tabs{ display:flex; gap:4px; background:rgba(18,22,28,.72); border:1px solid var(--panel-line); border-radius:999px; padding:4px; backdrop-filter:blur(6px); max-width:100%; overflow-x:auto; } .tabs button{ appearance:none; border:none; background:transparent; color:var(--ink-dim); font-size:13px; font-weight:600; padding:8px 14px; border-radius:999px; cursor:pointer; transition:color .2s, background .2s; font-family:inherit; white-space:nowrap; } .tabs button.active{ background:var(--tab-accent,#2a3138); color:var(--ink); } .tabs button:hover{ color:var(--ink); } .actions{ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; } .pill-info{ font-size:12px; color:var(--ink-dim); background:rgba(18,22,28,.72); border:1px solid var(--panel-line); padding:8px 12px; border-radius:999px; backdrop-filter:blur(6px); font-variant-numeric:tabular-nums; } .pill-info.sizectl{ display:flex; align-items:center; gap:7px; } .sizectl input[type="range"]{ width:70px; vertical-align:middle; accent-color:var(--accent); } .sizectl .label-short{ display:none; } .fishpicker-wrap{ position:relative; } .fishcount-btn{ font-family:inherit; cursor:pointer; appearance:none; } .fishcount-btn:hover{ color:var(--ink); } .fish-dropdown{ display:none; position:absolute; top:calc(100% + 8px); left:0; min-width:230px; max-height:300px; overflow-y:auto; background:rgba(18,22,28,.7); backdrop-filter:blur(10px); border:1px solid var(--panel-line); border-radius:14px; padding:8px; box-shadow:0 16px 36px rgba(0,0,0,.45); z-index:30; } .fish-dropdown.open{ display:block; } .fish-dropdown .empty{ font-size:12px; color:var(--ink-dim); padding:14px 8px; text-align:center; } .fish-row{ display:flex; align-items:center; gap:9px; padding:6px 5px; border-radius:9px; } .fish-row:hover{ background:rgba(255,255,255,.06); } .fish-row img{ width:30px; height:30px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,.08); flex:0 0 auto; } .fish-row input[type="range"]{ flex:1; min-width:0; accent-color:var(--accent); } .fish-row .pct{ font-size:11px; color:var(--ink-dim); width:36px; text-align:right; font-variant-numeric:tabular-nums; flex:0 0 auto; } .btn{ appearance:none; border:1px solid var(--panel-line); cursor:pointer; font-family:inherit; font-weight:700; font-size:13px; border-radius:999px; padding:9px 16px; transition:transform .15s, filter .15s; } .btn:hover{ filter:brightness(1.08); } .btn:active{ transform:scale(.96); } .btn:disabled{ opacity:.35; cursor:not-allowed; filter:none; transform:none; } .btn-primary{ background:var(--accent); color:#0b0e12; border-color:transparent; } .btn-ghost{ background:rgba(18,22,28,.72); color:var(--ink-dim); backdrop-filter:blur(6px); } .btn-ghost:hover{ color:var(--ink); } .undo-row{ display:flex; gap:8px; margin-top:12px; } .caption{ position:absolute; left:0; right:0; bottom:16px; text-align:center; font-size:12px; color:var(--ink-dim); letter-spacing:.02em; pointer-events:none; z-index:5; } /* ---------- draw panel: docked to one side, aquarium stays visible ---------- */ .modal-backdrop{ position:absolute; inset:0; background:rgba(4,6,9,.32); z-index:50; opacity:0; pointer-events:none; transition:opacity .25s ease; } .modal-backdrop.open{ opacity:1; pointer-events:auto; } .modal{ position:absolute; top:0; right:0; bottom:0; width:min(430px,94vw); background:var(--panel); border-left:1px solid var(--panel-line); padding:20px; overflow:auto; box-shadow:-28px 0 60px rgba(0,0,0,.45); transform:translateX(100%); transition:transform .3s ease; } .modal-backdrop.open .modal{ transform:translateX(0); } .modal h2{ margin:0 0 2px; font-size:17px; } .modal .sub{ margin:0 0 14px; font-size:12.5px; color:var(--ink-dim); } .canvas-wrap{ background: repeating-linear-gradient(45deg, #efe7d4 0 10px, #f6efe0 10px 20px); border-radius:14px; padding:14px; display:flex; justify-content:center; border:1px solid #d8cdb2; } #drawCanvas{ background:var(--paper); border-radius:8px; max-width:100%; height:auto; box-shadow:0 2px 10px rgba(0,0,0,.25) inset; cursor:crosshair; touch-action:none; } .tool-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; align-items:center; } .modebtns{ display:flex; gap:6px; background:#1a2027; border:1px solid var(--panel-line); border-radius:10px; padding:3px; } .modebtns button{ appearance:none; border:none; background:transparent; color:var(--ink-dim); font-family:inherit; font-size:12.5px; font-weight:700; padding:7px 12px; border-radius:8px; cursor:pointer; } .modebtns button.active{ background:#2a3138; color:var(--ink); } .swatches{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; } .swatch{ width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.15); cursor:pointer; padding:0; position:relative; } .swatch.selected{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(127,212,193,.35); } .colorpick{ width:26px; height:26px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,.15); padding:0; cursor:pointer; background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red); } .colorpick input{ opacity:0; width:1px; height:1px; position:absolute; } .brushsize{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-dim); } .brushsize input{ width:90px; } .modal-footer{ display:flex; justify-content:space-between; gap:10px; margin-top:16px; } .modal-footer .left{ display:flex; gap:8px; } @media (max-width:700px){ .brand{ display:none; } .topbar{ justify-content:center; } .actions{ justify-content:center; } .tool-row{ justify-content:center; } } @media (max-width:480px){ .sizectl .label-full{ display:none; } .sizectl .label-short{ display:inline; } .sizectl input[type="range"]{ width:56px; } .pill-info{ padding:7px 10px; font-size:11px; } .btn{ padding:8px 12px; font-size:12px; } } </style> </head> <body> <canvas id="scene"></canvas> <div class="topbar"> <div class="brand"><span class="dot"></span>수중 터널</div> <div class="tabs" id="themeTabs"></div> <div class="actions"> <div class="fishpicker-wrap" id="fishPickerWrap"> <button class="pill-info fishcount-btn" id="fishCount">물고기 0마리</button> <div class="fish-dropdown" id="fishDropdown"></div> </div> <div class="pill-info sizectl" title="터널 속 물고기 전체 크기"> 🐟 <span class="label-full">모든 물고기 크기 조정</span><span class="label-short">크기</span> <input type="range" id="fishScale" min="40" max="160" value="70"> </div> <button class="btn btn-ghost" id="resetBtn">비우기</button> <button class="btn btn-primary" id="openDraw">+ 그림판 열기</button> </div> </div> <div class="caption">그림판을 열어 자유롭게 그리면 터널 속을 헤엄쳐요</div> <div class="modal-backdrop" id="modalBackdrop"> <div class="modal"> <h2>자유롭게 그리기</h2> <p class="sub">마음대로 그려서 나만의 생물을 만들어보세요.</p> <div class="canvas-wrap"> <canvas id="drawCanvas" width="480" height="300"></canvas> </div> <div class="undo-row"> <button class="btn btn-ghost" id="undoBtn" disabled>↩ 뒤로가기</button> <button class="btn btn-ghost" id="redoBtn" disabled>↪ 앞으로가기</button> </div> <div class="tool-row"> <div class="modebtns" id="toolBtns"> <button data-tool="pen" class="active">🖊 펜</button> <button data-tool="eraser">🧹 지우개</button> 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>수중 터널 — 물고기 미디어아트</title>
+<style>
+  :root{
+    --bg:#0b0e12;
+    --panel:#12161c;
+    --panel-line:#232a33;
+    --ink:#eef1ee;
+    --ink-dim:#9aa5ad;
+    --paper:#fbf6ec;
+    --accent:#7fd4c1;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;
+  }
+  #scene{ position:absolute; inset:0; display:block; touch-action:none; }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    gap:10px; padding:14px 18px;
+    z-index:10;
+    pointer-events:none;
+  }
+  .topbar > *{ pointer-events:auto; }
+  .brand{
+    font-size:13px; letter-spacing:.08em; color:var(--ink-dim);
+    text-transform:uppercase; font-weight:600;
+    display:flex; align-items:center; gap:8px;
+  }
+  .brand .dot{ width:6px;height:6px;border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); }
+
+  .tabs{
+    display:flex; gap:4px; background:rgba(18,22,28,.72);
+    border:1px solid var(--panel-line); border-radius:999px; padding:4px;
+    backdrop-filter:blur(6px);
+    max-width:100%; overflow-x:auto;
+  }
+  .tabs button{
+    appearance:none; border:none; background:transparent; color:var(--ink-dim);
+    font-size:13px; font-weight:600; padding:8px 14px; border-radius:999px;
+    cursor:pointer; transition:color .2s, background .2s;
+    font-family:inherit; white-space:nowrap;
+  }
+  .tabs button.active{ background:var(--tab-accent,#2a3138); color:var(--ink); }
+  .tabs button:hover{ color:var(--ink); }
+
+  .actions{ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; }
+  .pill-info{
+    font-size:12px; color:var(--ink-dim); background:rgba(18,22,28,.72);
+    border:1px solid var(--panel-line); padding:8px 12px; border-radius:999px;
+    backdrop-filter:blur(6px); font-variant-numeric:tabular-nums;
+  }
+  .pill-info.sizectl{ display:flex; align-items:center; gap:7px; }
+  .sizectl input[type="range"]{ width:70px; vertical-align:middle; accent-color:var(--accent); }
+  .sizectl .label-short{ display:none; }
+
+  .fishpicker-wrap{ position:relative; }
+  .fishcount-btn{
+    font-family:inherit; cursor:pointer; appearance:none;
+  }
+  .fishcount-btn:hover{ color:var(--ink); }
+  .fish-dropdown{
+    display:none; position:absolute; top:calc(100% + 8px); left:0;
+    min-width:230px; max-height:300px; overflow-y:auto;
+    background:rgba(18,22,28,.7); backdrop-filter:blur(10px);
+    border:1px solid var(--panel-line); border-radius:14px; padding:8px;
+    box-shadow:0 16px 36px rgba(0,0,0,.45); z-index:30;
+  }
+  .fish-dropdown.open{ display:block; }
+  .fish-dropdown .empty{ font-size:12px; color:var(--ink-dim); padding:14px 8px; text-align:center; }
+  .fish-row{ display:flex; align-items:center; gap:9px; padding:6px 5px; border-radius:9px; }
+  .fish-row:hover{ background:rgba(255,255,255,.06); }
+  .fish-row img{ width:30px; height:30px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,.08); flex:0 0 auto; }
+  .fish-row input[type="range"]{ flex:1; min-width:0; accent-color:var(--accent); }
+  .fish-row .pct{ font-size:11px; color:var(--ink-dim); width:36px; text-align:right; font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  .btn{
+    appearance:none; border:1px solid var(--panel-line); cursor:pointer;
+    font-family:inherit; font-weight:700; font-size:13px;
+    border-radius:999px; padding:9px 16px; transition:transform .15s, filter .15s;
+  }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn:active{ transform:scale(.96); }
+  .btn:disabled{ opacity:.35; cursor:not-allowed; filter:none; transform:none; }
+  .btn-primary{ background:var(--accent); color:#0b0e12; border-color:transparent; }
+  .btn-ghost{ background:rgba(18,22,28,.72); color:var(--ink-dim); backdrop-filter:blur(6px); }
+  .btn-ghost:hover{ color:var(--ink); }
+
+  .undo-row{ display:flex; gap:8px; margin-top:12px; }
+
+  .caption{
+    position:absolute; left:0; right:0; bottom:16px; text-align:center;
+    font-size:12px; color:var(--ink-dim); letter-spacing:.02em;
+    pointer-events:none; z-index:5;
+  }
+
+  /* ---------- draw panel: docked to one side, aquarium stays visible ---------- */
+  .modal-backdrop{
+    position:absolute; inset:0; background:rgba(4,6,9,.32);
+    z-index:50; opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .modal-backdrop.open{ opacity:1; pointer-events:auto; }
+  .modal{
+    position:absolute; top:0; right:0; bottom:0; width:min(430px,94vw);
+    background:var(--panel); border-left:1px solid var(--panel-line);
+    padding:20px; overflow:auto;
+    box-shadow:-28px 0 60px rgba(0,0,0,.45);
+    transform:translateX(100%); transition:transform .3s ease;
+  }
+  .modal-backdrop.open .modal{ transform:translateX(0); }
+  .modal h2{ margin:0 0 2px; font-size:17px; }
+  .modal .sub{ margin:0 0 14px; font-size:12.5px; color:var(--ink-dim); }
+
+  .canvas-wrap{
+    background:
+      repeating-linear-gradient(45deg, #efe7d4 0 10px, #f6efe0 10px 20px);
+    border-radius:14px; padding:14px; display:flex; justify-content:center;
+    border:1px solid #d8cdb2;
+  }
+  #drawCanvas{
+    background:var(--paper); border-radius:8px; max-width:100%; height:auto;
+    box-shadow:0 2px 10px rgba(0,0,0,.25) inset;
+    cursor:crosshair;
+    touch-action:none;
+  }
+
+  .tool-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; align-items:center; }
+  .modebtns{ display:flex; gap:6px; background:#1a2027; border:1px solid var(--panel-line); border-radius:10px; padding:3px; }
+  .modebtns button{
+    appearance:none; border:none; background:transparent; color:var(--ink-dim);
+    font-family:inherit; font-size:12.5px; font-weight:700; padding:7px 12px;
+    border-radius:8px; cursor:pointer;
+  }
+  .modebtns button.active{ background:#2a3138; color:var(--ink); }
+
+  .swatches{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .swatch{
+    width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,.15);
+    cursor:pointer; padding:0; position:relative;
+  }
+  .swatch.selected{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(127,212,193,.35); }
+  .colorpick{ width:26px; height:26px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,.15); padding:0; cursor:pointer; background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red); }
+  .colorpick input{ opacity:0; width:1px; height:1px; position:absolute; }
+
+  .brushsize{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-dim); }
+  .brushsize input{ width:90px; }
+
+  .modal-footer{ display:flex; justify-content:space-between; gap:10px; margin-top:16px; }
+  .modal-footer .left{ display:flex; gap:8px; }
+
+  @media (max-width:700px){
+    .brand{ display:none; }
+    .topbar{ justify-content:center; }
+    .actions{ justify-content:center; }
+    .tool-row{ justify-content:center; }
+  }
+  @media (max-width:480px){
+    .sizectl .label-full{ display:none; }
+    .sizectl .label-short{ display:inline; }
+    .sizectl input[type="range"]{ width:56px; }
+    .pill-info{ padding:7px 10px; font-size:11px; }
+    .btn{ padding:8px 12px; font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>수중 터널</div>
+  <div class="tabs" id="themeTabs"></div>
+  <div class="actions">
+    <div class="fishpicker-wrap" id="fishPickerWrap">
+      <button class="pill-info fishcount-btn" id="fishCount">물고기 0마리</button>
+      <div class="fish-dropdown" id="fishDropdown"></div>
+    </div>
+    <div class="pill-info sizectl" title="터널 속 물고기 전체 크기">
+      🐟 <span class="label-full">모든 물고기 크기 조정</span><span class="label-short">크기</span>
+      <input type="range" id="fishScale" min="40" max="160" value="70">
+    </div>
+    <button class="btn btn-ghost" id="resetBtn">비우기</button>
+    <button class="btn btn-primary" id="openDraw">+ 그림판 열기</button>
+  </div>
+</div>
+
+<div class="caption">그림판을 열어 자유롭게 그리면 터널 속을 헤엄쳐요</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2>자유롭게 그리기</h2>
+    <p class="sub">마음대로 그려서 나만의 생물을 만들어보세요.</p>
+
+    <div class="canvas-wrap">
+      <canvas id="drawCanvas" width="480" height="300"></canvas>
+    </div>
+
+    <div class="undo-row">
+      <button class="btn btn-ghost" id="undoBtn" disabled>↩ 뒤로가기</button>
+      <button class="btn btn-ghost" id="redoBtn" disabled>↪ 앞으로가기</button>
+    </div>
+
+    <div class="tool-row">
+      <div class="modebtns" id="toolBtns">
+        <button data-tool="pen" class="active">🖊 펜</button>
+        <button data-tool="eraser">🧹 지우개</button>
+      </div>
+      <div class="swatches" id="swatches"></div>
+      <div class="colorpick" title="다른 색상"><input type="color" id="customColor" value="#ff8b5e"></div>
+    </div>
+    <div class="tool-row">
+      <div class="brushsize" id="brushSizeWrap">
+        <span>굵기</span><input type="range" id="brushSize" min="3" max="18" value="8">
+      </div>
+      <div class="brushsize" id="opacityWrap">
+        <span>펜 오퍼시티</span><input type="range" id="penOpacity" min="10" max="100" value="100">
+      </div>
+      <div class="brushsize" id="eraserSizeWrap" style="display:none;">
+        <span>지우개 굵기</span><input type="range" id="eraserSize" min="6" max="40" value="16">
+      </div>
+      <div class="brushsize" title="이 물고기의 크기">
+        <span>이 개체 크기</span><input type="range" id="perFishSize" min="50" max="180" value="100">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div class="left">
+        <button class="btn btn-ghost" id="clearDraw">다시 그리기</button>
+        <button class="btn btn-ghost" id="cancelDraw">취소</button>
+      </div>
+      <button class="btn btn-primary" id="addFish">헤엄치게 하기 🐠</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   1. BACKGROUND / TUNNEL / PARTICLES / VISITORS
+   ============================================================ */
+
+var canvas = document.getElementById('scene');
+var ctx = canvas.getContext('2d');
+var W=0, H=0, DPR = Math.min(window.devicePixelRatio||1, 2);
+
+/* visualViewport reflects the *actual* visible area on mobile browsers.
+   window.innerHeight can under-measure right after page load, before a
+   mobile browser's address bar has finished collapsing — which used to
+   leave the canvas sized too short, pushing the tunnel floor/visitors
+   below the visible screen (with no way to scroll down to them). */
+function viewportSize(){
+  if(window.visualViewport){
+    return { w: window.visualViewport.width, h: window.visualViewport.height };
+  }
+  return { w: window.innerWidth, h: window.innerHeight };
+}
+
+function resize(){
+  var vp = viewportSize();
+  W = vp.w; H = vp.h;
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('load', resize);
+window.addEventListener('orientationchange', function(){ setTimeout(resize, 150); });
+/* re-measure a moment after load too, in case the address bar was still
+   visible/animating when the 'load' resize ran */
+window.addEventListener('load', function(){ setTimeout(resize, 300); });
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', resize);
+}
+if(window.ResizeObserver){
+  new ResizeObserver(function(){ resize(); }).observe(document.documentElement);
+}
+
+var THEMES = {
+  river: {
+    label:'강 내부', accent:'#8fd18a',
+    sky:['#123a2c','#1c5c42','#2f7f57'],
+    floor:['#0c2419','#050f0b'],
+    particleColor:[190,235,180], rayColor:[210,240,190],
+    driftX:26, driftY:-14, count:130, glow:false, big:false
+  },
+  ocean: {
+    label:'바다 내부', accent:'#79b8e8',
+    sky:['#02223f','#0a3f66','#12658f'],
+    floor:['#03182a','#010a14'],
+    particleColor:[190,222,255], rayColor:[200,228,255],
+    driftX:6, driftY:-20, count:150, glow:false, big:false
+  },
+  deepsea: {
+    label:'심해 단면', accent:'#4fd6c4',
+    sky:['#000000','#040a16','#081c2e'],
+    floor:['#02060b','#000000'],
+    particleColor:[110,240,210], rayColor:[70,140,255],
+    driftX:2, driftY:-4, count:60, glow:true, big:true
+  }
+};
+var themeKeys = ['river','ocean','deepsea'];
+var currentTheme = localStorage.getItem('aq_theme_v1') || 'ocean';
+if(themeKeys.indexOf(currentTheme)===-1) currentTheme='ocean';
+
+/* ---- tunnel geometry: arc(x) returns y for top ceiling & bottom walkway ---- */
+/* the tunnel's curvature is tuned differently for a wide desktop window
+   (a flat, panoramic tube) vs. a tall phone screen (a rounder, portrait window) */
+function topArcY(x){
+  var cx=W/2, t=(x-cx)/(W/2);
+  var portrait = H>W;
+  var base = portrait ? H*0.05 : H*0.05;
+  var amp  = portrait ? W*0.22 : H*0.11;
+  return base + t*t*amp;
+}
+function bottomArcY(x){
+  var cx=W/2, t=(x-cx)/(W/2);
+  var portrait = H>W;
+  var base = portrait ? H*0.74 : H*0.62;
+  var amp  = portrait ? W*0.20 : H*0.10;
+  return base - t*t*amp;
+}
+function tunnelPath(){
+  var p = new Path2D();
+  var steps=24;
+  p.moveTo(0, topArcY(0));
+  for(var i=1;i<=steps;i++){ var x=W*i/steps; p.lineTo(x, topArcY(x)); }
+  for(i=steps;i>=0;i--){ var x2=W*i/steps; p.lineTo(x2, bottomArcY(x2)); }
+  p.closePath();
+  return p;
+}
+
+/* ---- particles ---- */
+var particles = [];
+function initParticles(){
+  var th = THEMES[currentTheme];
+  particles = [];
+  var minY = topArcY(W/2)-10, maxY = bottomArcY(W/2)+40;
+  for(var i=0;i<th.count;i++){
+    particles.push({
+      x: Math.random()*W,
+      y: minY + Math.random()*(maxY-minY),
+      r: th.big ? (1+Math.random()*2.6) : (0.6+Math.random()*2.2),
+      a: 0.25+Math.random()*0.6,
+      phase: Math.random()*Math.PI*2,
+      speedMul: 0.6+Math.random()*0.8
+    });
+  }
+}
+
+/* ---- visitors (silhouette figures walking the tunnel floor) ---- */
+var visitors = [];
+function initVisitors(){
+  visitors = [];
+  var n = 5;
+  for(var i=0;i<n;i++){
+    visitors.push({
+      x: Math.random()*W,
+      dir: Math.random()<0.5?-1:1,
+      speed: 16+Math.random()*14,
+      scaleJit: 0.85+Math.random()*0.3,
+      phase: Math.random()*Math.PI*2,
+      bob: Math.random()*Math.PI*2
+    });
+  }
+}
+
+/* a rounded, tapered "capsule" from (x0,y0,halfwidth w0) to (x1,y1,halfwidth w1) */
+/* wooden-mannequin style visitor: built only from circles (ctx.arc) and line strokes */
+function drawVisitor(v){
+  var t = (v.x-W/2)/(W/2);
+  var closeness = 1 - Math.min(1, Math.abs(t))*0.62;
+  var scale = closeness * v.scaleJit * (H/820);
+  var y = bottomArcY(v.x);
+  ctx.save();
+  ctx.translate(v.x, y);
+  ctx.scale(scale*(v.dir<0?-1:1), scale);
+  ctx.globalAlpha = 0.9;
+  var col = 'rgba(5,7,9,0.94)';
+  ctx.fillStyle = col; ctx.strokeStyle = col;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  var legSwing = Math.sin(v.bob)*15;
+  var armSwing = Math.sin(v.bob+Math.PI)*8;
+  var hipY=-58, shoulderY=-106, headY=-124;
+  var footL={x:legSwing,y:0}, footR={x:-legSwing,y:0};
+  var shoulderL={x:-11,y:shoulderY+4}, shoulderR={x:11,y:shoulderY+4};
+  var handL={x:-12-armSwing,y:shoulderY+42}, handR={x:12+armSwing,y:shoulderY+42};
+
+  ctx.lineWidth=9;
+  ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(footL.x,footL.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(footR.x,footR.y); ctx.stroke();
+
+  ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(shoulderL.x,shoulderL.y); ctx.lineTo(handL.x,handL.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(shoulderR.x,shoulderR.y); ctx.lineTo(handR.x,handR.y); ctx.stroke();
+
+  ctx.lineWidth=15;
+  ctx.beginPath(); ctx.moveTo(0,hipY); ctx.lineTo(0,shoulderY); ctx.stroke();
+
+  [[0,hipY,7], [footL.x,footL.y,4.5], [footR.x,footR.y,4.5],
+   [shoulderL.x,shoulderL.y,3.5], [shoulderR.x,shoulderR.y,3.5],
+   [handL.x,handL.y,3.5], [handR.x,handR.y,3.5]].forEach(function(j){
+    ctx.beginPath(); ctx.arc(j[0],j[1],j[2],0,Math.PI*2); ctx.fill();
+  });
+
+  ctx.beginPath(); ctx.arc(0,headY,11,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ============================================================
+   2. FISH (user-colored template swims here)
+   ============================================================ */
+
+var fishes = [];
+var globalFishScale = parseFloat(localStorage.getItem('aq_fishscale_v1')) || 0.7;
+
+function makeFishFromDataURL(dataURL, w, h, sizeFactor){
+  var img = new Image();
+  var f = {
+    img:img, ready:false, w:w, h:h,
+    x: Math.random()*W,
+    y: topArcY(W/2) + 30 + Math.random()*(bottomArcY(W/2)-topArcY(W/2)-70),
+    dir: Math.random()<0.5?-1:1,
+    speed: 30+Math.random()*40,
+    scale: (0.45+Math.random()*0.3) * (sizeFactor||1),
+    bobAmp: 8+Math.random()*10,
+    bobFreq: 0.8+Math.random()*0.6,
+    bobPhase: Math.random()*Math.PI*2,
+    t: Math.random()*10
+  };
+  img.onload=function(){ f.ready=true; };
+  img.src = dataURL;
+  fishes.push(f);
+  return f;
+}
+
+function updateAndDrawFish(f, dt){
+  f.t += dt;
+  var baseY = f.y + Math.sin(f.t*f.bobFreq+f.bobPhase)*f.bobAmp;
+  f.x += f.dir*f.speed*dt;
+  var margin = 80*f.scale*globalFishScale;
+  if(f.dir>0 && f.x > W+margin) f.x = -margin;
+  if(f.dir<0 && f.x < -margin) f.x = W+margin;
+
+  if(!f.ready) return;
+  var w = f.w*f.scale*globalFishScale, h=f.h*f.scale*globalFishScale;
+  ctx.save();
+  ctx.translate(f.x, baseY);
+  var wiggle = Math.sin(f.t*f.bobFreq*2.2+f.bobPhase)*0.05;
+  ctx.rotate(wiggle);
+  // template fish faces LEFT by default -> flip so it faces its travel direction
+  var faceFlip = f.dir>0 ? -1 : 1;
+  ctx.scale(faceFlip,1);
+  ctx.drawImage(f.img, -w/2, -h/2, w, h);
+  ctx.restore();
+}
+
+function persistFishes(){
+  var data = fishes.map(function(f){
+    return {src:f.img.src, w:f.w, h:f.h, scale:f.scale};
+  });
+  try{ localStorage.setItem('aq_fish_v1', JSON.stringify(data)); }catch(e){}
+}
+function loadFishes(){
+  try{
+    var raw = localStorage.getItem('aq_fish_v1');
+    if(!raw) return;
+    var data = JSON.parse(raw);
+    data.forEach(function(d){
+      var f = makeFishFromDataURL(d.src, d.w, d.h);
+      f.scale = d.scale;
+    });
+  }catch(e){}
+}
+
+/* ============================================================
+   3. MAIN RENDER LOOP
+   ============================================================ */
+
+var lastT = performance.now();
+function frame(now){
+  var dt = Math.min(0.05,(now-lastT)/1000); lastT = now;
+  var th = THEMES[currentTheme];
+  ctx.clearRect(0,0,W,H);
+
+  // floor (behind everything, full canvas base)
+  var fg = ctx.createLinearGradient(0,H*0.55,0,H);
+  fg.addColorStop(0, th.floor[0]); fg.addColorStop(1, th.floor[1]);
+  ctx.fillStyle = fg; ctx.fillRect(0,0,W,H);
+
+  var tunnel = tunnelPath();
+  ctx.save();
+  ctx.clip(tunnel);
+
+  // sky/water gradient inside tunnel
+  var sg = ctx.createLinearGradient(0,topArcY(W/2)-20,0,bottomArcY(W/2)+40);
+  sg.addColorStop(0, th.sky[0]); sg.addColorStop(0.55, th.sky[1]); sg.addColorStop(1, th.sky[2]);
+  ctx.fillStyle = sg; ctx.fillRect(0,0,W,H);
+
+  // light rays
+  ctx.globalAlpha = 1;
+  for(var r=0;r<4;r++){
+    var rx = W*(0.15+r*0.24);
+    var rg = ctx.createLinearGradient(rx,topArcY(rx)-20,rx+W*0.12,bottomArcY(rx));
+    rg.addColorStop(0,'rgba('+th.rayColor.join(',')+',0.10)');
+    rg.addColorStop(1,'rgba('+th.rayColor.join(',')+',0)');
+    ctx.fillStyle=rg;
+    ctx.beginPath();
+    ctx.moveTo(rx-W*0.05, topArcY(rx)-20);
+    ctx.lineTo(rx+W*0.09, topArcY(rx)-20);
+    ctx.lineTo(rx+W*0.16, bottomArcY(rx)+40);
+    ctx.lineTo(rx-W*0.02, bottomArcY(rx)+40);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // particles
+  particles.forEach(function(p){
+    p.x += th.driftX*p.speedMul*dt;
+    p.y += th.driftY*p.speedMul*dt;
+    if(p.x>W+10) p.x=-10; if(p.x<-10) p.x=W+10;
+    var topB = topArcY(p.x)-10, botB = bottomArcY(p.x)+40;
+    if(p.y<topB) p.y=botB; if(p.y>botB) p.y=topB;
+    var tw = 0.7+0.3*Math.sin(p.phase + now*0.002);
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba('+th.particleColor.join(',')+','+(p.a*tw)+')';
+    if(th.glow){ ctx.shadowColor='rgba('+th.particleColor.join(',')+',0.9)'; ctx.shadowBlur=8; }
+    else { ctx.shadowBlur=0; }
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.shadowBlur=0;
+
+  // fish
+  fishes.forEach(function(f){ updateAndDrawFish(f, dt); });
+
+  ctx.restore(); // end tunnel clip
+
+  // tunnel outline strokes
+  ctx.strokeStyle = 'rgba(230,240,235,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(var i=0;i<=40;i++){ var x=W*i/40; var y=topArcY(x); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.stroke();
+  ctx.beginPath();
+  for(i=0;i<=40;i++){ var x2=W*i/40; var y2=bottomArcY(x2); if(i===0)ctx.moveTo(x2,y2); else ctx.lineTo(x2,y2); }
+  ctx.stroke();
+
+  // floor sheen
+  var fs = ctx.createLinearGradient(0,bottomArcY(W/2),0,H);
+  fs.addColorStop(0,'rgba(255,255,255,0.05)'); fs.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=fs;
+  ctx.beginPath();
+  for(i=0;i<=40;i++){ var x3=W*i/40; var y3=bottomArcY(x3); if(i===0)ctx.moveTo(x3,y3); else ctx.lineTo(x3,y3); }
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fill();
+
+  // visitors walking on the floor line
+  visitors.forEach(function(v){
+    v.x += v.dir*v.speed*dt;
+    v.bob += dt*6;
+    if(v.dir>0 && v.x>W+40) v.x=-40;
+    if(v.dir<0 && v.x<-40) v.x=W+40;
+    drawVisitor(v);
+  });
+
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   4. THEME TABS / TOP CONTROLS
+   ============================================================ */
+
+var tabsEl = document.getElementById('themeTabs');
+themeKeys.forEach(function(k){
+  var b = document.createElement('button');
+  b.textContent = THEMES[k].label;
+  b.dataset.key = k;
+  if(k===currentTheme) b.classList.add('active');
+  b.addEventListener('click', function(){
+    currentTheme = k;
+    localStorage.setItem('aq_theme_v1', k);
+    document.querySelectorAll('#themeTabs button').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');
+    document.documentElement.style.setProperty('--tab-accent', THEMES[k].accent+'33');
+    initParticles();
+  });
+  tabsEl.appendChild(b);
+});
+document.documentElement.style.setProperty('--tab-accent', THEMES[currentTheme].accent+'33');
+
+function updateFishCount(){
+  document.getElementById('fishCount').textContent = '물고기 '+fishes.length+'마리';
+}
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  if(fishes.length===0) return;
+  if(confirm('그린 물고기를 모두 지울까요?')){
+    fishes = [];
+    localStorage.removeItem('aq_fish_v1');
+    updateFishCount();
+  }
+});
+
+var fishScaleSlider = document.getElementById('fishScale');
+fishScaleSlider.value = Math.round(globalFishScale*100);
+fishScaleSlider.addEventListener('input', function(e){
+  globalFishScale = (+e.target.value)/100;
+  localStorage.setItem('aq_fishscale_v1', globalFishScale);
+});
+
+/* ---- per-fish list: pick an individual fish and resize just that one ---- */
+var fishPickerWrap = document.getElementById('fishPickerWrap');
+var fishCountBtn = document.getElementById('fishCount');
+var fishDropdown = document.getElementById('fishDropdown');
+
+function renderFishDropdown(){
+  fishDropdown.innerHTML = '';
+  if(fishes.length===0){
+    var empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = '아직 그린 물고기가 없어요';
+    fishDropdown.appendChild(empty);
+    return;
+  }
+  fishes.forEach(function(f){
+    var row = document.createElement('div');
+    row.className = 'fish-row';
+
+    var img = document.createElement('img');
+    img.src = f.img.src;
+    row.appendChild(img);
+
+    var slider = document.createElement('input');
+    slider.type = 'range'; slider.min = '20'; slider.max = '150';
+    slider.value = String(Math.round(f.scale*100));
+    row.appendChild(slider);
+
+    var pct = document.createElement('span');
+    pct.className = 'pct';
+    pct.textContent = slider.value+'%';
+    row.appendChild(pct);
+
+    slider.addEventListener('input', function(e){
+      f.scale = (+e.target.value)/100;
+      pct.textContent = e.target.value+'%';
+      persistFishesSoon();
+    });
+
+    fishDropdown.appendChild(row);
+  });
+}
+
+fishCountBtn.addEventListener('click', function(e){
+  e.stopPropagation();
+  var willOpen = !fishDropdown.classList.contains('open');
+  if(willOpen) renderFishDropdown();
+  fishDropdown.classList.toggle('open', willOpen);
+});
+document.addEventListener('click', function(e){
+  if(!fishPickerWrap.contains(e.target)) fishDropdown.classList.remove('open');
+});
+
+/* ============================================================
+   5. FREE-DRAW BOARD (the only way to create a creature)
+   ============================================================ */
+
+var TW=480, TH=300;
+
+var drawCanvas = document.getElementById('drawCanvas');
+var dctx = drawCanvas.getContext('2d');
+var brushLayer = document.createElement('canvas');
+brushLayer.width=TW; brushLayer.height=TH;
+var bctx = brushLayer.getContext('2d');
+/* the in-progress pen stroke is drawn here at full strength, then merged into
+   brushLayer once (at pointerup) with the chosen opacity — this keeps a
+   semi-transparent stroke looking even instead of darkening where it overlaps itself */
+var liveLayer = document.createElement('canvas');
+liveLayer.width=TW; liveLayer.height=TH;
+var lctx = liveLayer.getContext('2d');
+
+function renderDrawCanvas(){
+  dctx.clearRect(0,0,TW,TH);
+  dctx.drawImage(brushLayer,0,0);
+  dctx.globalAlpha = penOpacity;
+  dctx.drawImage(liveLayer,0,0);
+  dctx.globalAlpha = 1;
+}
+
+var selectedColor = '#ff8b5e';
+var PALETTE = ['#ff5c5c','#ff8b5e','#ffd166','#8fd18a','#4fc3d9','#4f7bd9','#a06fd9','#f28ac6','#4a4a48','#ffffff'];
+
+var swWrap = document.getElementById('swatches');
+function buildSwatches(){
+  swWrap.innerHTML='';
+  PALETTE.forEach(function(c){
+    var b = document.createElement('button');
+    b.className='swatch'; b.style.background=c;
+    b.addEventListener('click', function(){ selectColor(c); });
+    swWrap.appendChild(b);
+  });
+  markSelected();
+}
+function markSelected(){
+  var kids = swWrap.querySelectorAll('.swatch');
+  kids.forEach(function(k){ k.classList.remove('selected'); });
+}
+function selectColor(c){
+  selectedColor = c;
+  markSelected();
+  var kids = swWrap.querySelectorAll('.swatch');
+  kids.forEach(function(k){
+    if(rgbToHex(k.style.background)===c.toLowerCase()) k.classList.add('selected');
+  });
+}
+function rgbToHex(rgb){
+  var m = rgb.match(/\d+/g); if(!m) return rgb;
+  return '#'+m.slice(0,3).map(function(n){ return ('0'+parseInt(n,10).toString(16)).slice(-2); }).join('');
+}
+buildSwatches();
+selectColor(selectedColor);
+
+document.getElementById('customColor').addEventListener('input', function(e){
+  selectedColor = e.target.value; markSelected();
+});
+
+/* ---- pen / eraser tool switch ---- */
+var currentTool = 'pen';
+var brushSize = 8, eraserSize = 16, penOpacity = 1;
+document.getElementById('brushSize').addEventListener('input', function(e){ brushSize = +e.target.value; });
+document.getElementById('eraserSize').addEventListener('input', function(e){ eraserSize = +e.target.value; });
+document.getElementById('penOpacity').addEventListener('input', function(e){ penOpacity = (+e.target.value)/100; renderDrawCanvas(); });
+
+var brushSizeWrap = document.getElementById('brushSizeWrap');
+var opacityWrap = document.getElementById('opacityWrap');
+var eraserSizeWrap = document.getElementById('eraserSizeWrap');
+document.getElementById('toolBtns').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  currentTool = b.dataset.tool;
+  document.querySelectorAll('#toolBtns button').forEach(function(x){ x.classList.toggle('active', x.dataset.tool===currentTool); });
+  var isPen = currentTool==='pen';
+  brushSizeWrap.style.display = isPen ? 'flex' : 'none';
+  opacityWrap.style.display = isPen ? 'flex' : 'none';
+  eraserSizeWrap.style.display = isPen ? 'none' : 'flex';
+});
+
+/* ---- pointer interaction on drawCanvas: freehand pen (with opacity) and eraser ---- */
+var drawing = false, lastPt=null;
+function localPoint(e){
+  var rect = drawCanvas.getBoundingClientRect();
+  var scaleX = TW/rect.width, scaleY = TH/rect.height;
+  return { x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY };
+}
+function strokeSegment(ctx2, x0,y0,x1,y1, width, composite, color){
+  ctx2.globalCompositeOperation = composite;
+  ctx2.strokeStyle = color;
+  ctx2.lineWidth = width; ctx2.lineCap='round'; ctx2.lineJoin='round';
+  ctx2.beginPath(); ctx2.moveTo(x0,y0); ctx2.lineTo(x1,y1); ctx2.stroke();
+  ctx2.globalCompositeOperation = 'source-over';
+}
+function strokeTo(x0,y0,x1,y1){
+  if(currentTool==='eraser'){
+    strokeSegment(bctx, x0,y0,x1,y1, eraserSize, 'destination-out', 'rgba(0,0,0,1)');
+  } else {
+    strokeSegment(lctx, x0,y0,x1,y1, brushSize, 'source-over', selectedColor);
+  }
+  renderDrawCanvas();
+}
+function commitLiveStroke(){
+  bctx.globalAlpha = penOpacity;
+  bctx.drawImage(liveLayer, 0, 0);
+  bctx.globalAlpha = 1;
+  lctx.clearRect(0,0,TW,TH);
+}
+
+/* ---- undo/redo: snapshot the brush layer before each stroke / clear ---- */
+var undoStack = [], redoStack = [];
+var HISTORY_LIMIT = 25;
+var undoBtn = document.getElementById('undoBtn');
+var redoBtn = document.getElementById('redoBtn');
+function updateHistoryButtons(){
+  undoBtn.disabled = undoStack.length===0;
+  redoBtn.disabled = redoStack.length===0;
+}
+function pushHistory(){
+  undoStack.push(bctx.getImageData(0,0,TW,TH));
+  if(undoStack.length>HISTORY_LIMIT) undoStack.shift();
+  redoStack.length = 0;
+  updateHistoryButtons();
+}
+function resetHistory(){
+  undoStack.length = 0; redoStack.length = 0;
+  updateHistoryButtons();
+}
+undoBtn.addEventListener('click', function(){
+  if(undoStack.length===0) return;
+  redoStack.push(bctx.getImageData(0,0,TW,TH));
+  bctx.putImageData(undoStack.pop(), 0, 0);
+  renderDrawCanvas();
+  updateHistoryButtons();
+});
+redoBtn.addEventListener('click', function(){
+  if(redoStack.length===0) return;
+  undoStack.push(bctx.getImageData(0,0,TW,TH));
+  bctx.putImageData(redoStack.pop(), 0, 0);
+  renderDrawCanvas();
+  updateHistoryButtons();
+});
+
+drawCanvas.addEventListener('pointerdown', function(e){
+  drawing = true;
+  pushHistory();
+  var pt = localPoint(e);
+  strokeTo(pt.x-0.01, pt.y-0.01, pt.x, pt.y);
+  lastPt = pt;
+});
+drawCanvas.addEventListener('pointermove', function(e){
+  if(!drawing) return;
+  var pt = localPoint(e);
+  if(lastPt) strokeTo(lastPt.x, lastPt.y, pt.x, pt.y);
+  lastPt = pt;
+});
+window.addEventListener('pointerup', function(){
+  if(drawing && currentTool==='pen'){ commitLiveStroke(); renderDrawCanvas(); }
+  drawing=false; lastPt=null;
+});
+
+/* ---- modal open/close/add ---- */
+var backdrop = document.getElementById('modalBackdrop');
+document.getElementById('openDraw').addEventListener('click', function(){
+  backdrop.classList.add('open');
+});
+document.getElementById('cancelDraw').addEventListener('click', function(){
+  backdrop.classList.remove('open');
+});
+backdrop.addEventListener('click', function(e){
+  if(e.target===backdrop) backdrop.classList.remove('open');
+});
+document.getElementById('clearDraw').addEventListener('click', function(){
+  pushHistory();
+  bctx.clearRect(0,0,TW,TH);
+  lctx.clearRect(0,0,TW,TH);
+  renderDrawCanvas();
+});
+
+document.getElementById('addFish').addEventListener('click', function(){
+  var exp = document.createElement('canvas'); exp.width=TW; exp.height=TH;
+  exp.getContext('2d').drawImage(brushLayer,0,0);
+
+  // trim to bounding box of non-transparent pixels
+  var id2 = exp.getContext('2d').getImageData(0,0,TW,TH).data;
+  var minX=TW,minY=TH,maxX=0,maxY=0,found=false;
+  for(var y=0;y<TH;y+=2){
+    for(var x=0;x<TW;x+=2){
+      var a = id2[(y*TW+x)*4+3];
+      if(a>10){ found=true; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; }
+    }
+  }
+  if(!found){ backdrop.classList.remove('open'); return; }
+  var pad=6;
+  minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+  maxX=Math.min(TW,maxX+pad); maxY=Math.min(TH,maxY+pad);
+  var cw=maxX-minX, ch=maxY-minY;
+  var trimmed = document.createElement('canvas'); trimmed.width=cw; trimmed.height=ch;
+  trimmed.getContext('2d').drawImage(exp, minX,minY,cw,ch, 0,0,cw,ch);
+
+  var dataURL = trimmed.toDataURL('image/png');
+  var sizeFactor = (+document.getElementById('perFishSize').value)/100;
+  makeFishFromDataURL(dataURL, cw, ch, sizeFactor);
+  updateFishCount();
+  persistFishesSoon();
+
+  bctx.clearRect(0,0,TW,TH);
+  renderDrawCanvas();
+  resetHistory();
+  backdrop.classList.remove('open');
+});
+
+var persistTimer=null;
+function persistFishesSoon(){
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(persistFishes, 400);
+}
+
+/* ============================================================
+   6. INIT
+   ============================================================ */
+resize();
+initParticles();
+initVisitors();
+loadFishes();
+updateFishCount();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
