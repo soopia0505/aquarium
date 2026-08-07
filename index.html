@@ -133,6 +133,13 @@
   }
 
   .tool-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; align-items:center; }
+  .modebtns{ display:flex; gap:6px; background:#1a2027; border:1px solid var(--panel-line); border-radius:10px; padding:3px; }
+  .modebtns button{
+    appearance:none; border:none; background:transparent; color:var(--ink-dim);
+    font-family:inherit; font-size:12.5px; font-weight:700; padding:7px 12px;
+    border-radius:8px; cursor:pointer;
+  }
+  .modebtns button.active{ background:#2a3138; color:var(--ink); }
 
   .swatches{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .swatch{
@@ -140,8 +147,6 @@
     cursor:pointer; padding:0; position:relative;
   }
   .swatch.selected{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(127,212,193,.35); }
-  .swatch.eraser{ background:
-      linear-gradient(45deg,#fff 45%,#c94b4b 45%,#c94b4b 55%,#fff 55%); }
   .colorpick{ width:26px; height:26px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,.15); padding:0; cursor:pointer; background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red); }
   .colorpick input{ opacity:0; width:1px; height:1px; position:absolute; }
 
@@ -204,10 +209,22 @@
     </div>
 
     <div class="tool-row">
+      <div class="modebtns" id="toolBtns">
+        <button data-tool="pen" class="active">🖊 펜</button>
+        <button data-tool="eraser">🧹 지우개</button>
+      </div>
       <div class="swatches" id="swatches"></div>
       <div class="colorpick" title="다른 색상"><input type="color" id="customColor" value="#ff8b5e"></div>
-      <div class="brushsize">
+    </div>
+    <div class="tool-row">
+      <div class="brushsize" id="brushSizeWrap">
         <span>굵기</span><input type="range" id="brushSize" min="3" max="18" value="8">
+      </div>
+      <div class="brushsize" id="opacityWrap">
+        <span>펜 오퍼시티</span><input type="range" id="penOpacity" min="10" max="100" value="100">
+      </div>
+      <div class="brushsize" id="eraserSizeWrap" style="display:none;">
+        <span>지우개 굵기</span><input type="range" id="eraserSize" min="6" max="40" value="16">
       </div>
       <div class="brushsize" title="이 물고기의 크기">
         <span>이 개체 크기</span><input type="range" id="perFishSize" min="50" max="180" value="100">
@@ -281,15 +298,15 @@ if(themeKeys.indexOf(currentTheme)===-1) currentTheme='ocean';
 function topArcY(x){
   var cx=W/2, t=(x-cx)/(W/2);
   var portrait = H>W;
-  var base = portrait ? H*0.09 : H*0.05;
-  var amp  = portrait ? W*0.30 : H*0.11;
+  var base = portrait ? H*0.05 : H*0.05;
+  var amp  = portrait ? W*0.22 : H*0.11;
   return base + t*t*amp;
 }
 function bottomArcY(x){
   var cx=W/2, t=(x-cx)/(W/2);
   var portrait = H>W;
-  var base = portrait ? H*0.52 : H*0.62;
-  var amp  = portrait ? W*0.26 : H*0.10;
+  var base = portrait ? H*0.74 : H*0.62;
+  var amp  = portrait ? W*0.20 : H*0.10;
   return base - t*t*amp;
 }
 function tunnelPath(){
@@ -643,10 +660,19 @@ var dctx = drawCanvas.getContext('2d');
 var brushLayer = document.createElement('canvas');
 brushLayer.width=TW; brushLayer.height=TH;
 var bctx = brushLayer.getContext('2d');
+/* the in-progress pen stroke is drawn here at full strength, then merged into
+   brushLayer once (at pointerup) with the chosen opacity — this keeps a
+   semi-transparent stroke looking even instead of darkening where it overlaps itself */
+var liveLayer = document.createElement('canvas');
+liveLayer.width=TW; liveLayer.height=TH;
+var lctx = liveLayer.getContext('2d');
 
 function renderDrawCanvas(){
   dctx.clearRect(0,0,TW,TH);
   dctx.drawImage(brushLayer,0,0);
+  dctx.globalAlpha = penOpacity;
+  dctx.drawImage(liveLayer,0,0);
+  dctx.globalAlpha = 1;
 }
 
 var selectedColor = '#ff8b5e';
@@ -655,10 +681,6 @@ var PALETTE = ['#ff5c5c','#ff8b5e','#ffd166','#8fd18a','#4fc3d9','#4f7bd9','#a06
 var swWrap = document.getElementById('swatches');
 function buildSwatches(){
   swWrap.innerHTML='';
-  var er = document.createElement('button');
-  er.className='swatch eraser'; er.title='지우개';
-  er.addEventListener('click', function(){ selectColor(null); });
-  swWrap.appendChild(er);
   PALETTE.forEach(function(c){
     var b = document.createElement('button');
     b.className='swatch'; b.style.background=c;
@@ -676,9 +698,7 @@ function selectColor(c){
   markSelected();
   var kids = swWrap.querySelectorAll('.swatch');
   kids.forEach(function(k){
-    var bg = k.style.background;
-    if(c===null && k.classList.contains('eraser')) k.classList.add('selected');
-    if(c && rgbToHex(bg)===c.toLowerCase()) k.classList.add('selected');
+    if(rgbToHex(k.style.background)===c.toLowerCase()) k.classList.add('selected');
   });
 }
 function rgbToHex(rgb){
@@ -692,23 +712,53 @@ document.getElementById('customColor').addEventListener('input', function(e){
   selectedColor = e.target.value; markSelected();
 });
 
-var brushSize = 8;
+/* ---- pen / eraser tool switch ---- */
+var currentTool = 'pen';
+var brushSize = 8, eraserSize = 16, penOpacity = 1;
 document.getElementById('brushSize').addEventListener('input', function(e){ brushSize = +e.target.value; });
+document.getElementById('eraserSize').addEventListener('input', function(e){ eraserSize = +e.target.value; });
+document.getElementById('penOpacity').addEventListener('input', function(e){ penOpacity = (+e.target.value)/100; renderDrawCanvas(); });
 
-/* ---- pointer interaction on drawCanvas: freehand brush, with a real eraser ---- */
+var brushSizeWrap = document.getElementById('brushSizeWrap');
+var opacityWrap = document.getElementById('opacityWrap');
+var eraserSizeWrap = document.getElementById('eraserSizeWrap');
+document.getElementById('toolBtns').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  currentTool = b.dataset.tool;
+  document.querySelectorAll('#toolBtns button').forEach(function(x){ x.classList.toggle('active', x.dataset.tool===currentTool); });
+  var isPen = currentTool==='pen';
+  brushSizeWrap.style.display = isPen ? 'flex' : 'none';
+  opacityWrap.style.display = isPen ? 'flex' : 'none';
+  eraserSizeWrap.style.display = isPen ? 'none' : 'flex';
+});
+
+/* ---- pointer interaction on drawCanvas: freehand pen (with opacity) and eraser ---- */
 var drawing = false, lastPt=null;
 function localPoint(e){
   var rect = drawCanvas.getBoundingClientRect();
   var scaleX = TW/rect.width, scaleY = TH/rect.height;
   return { x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY };
 }
+function strokeSegment(ctx2, x0,y0,x1,y1, width, composite, color){
+  ctx2.globalCompositeOperation = composite;
+  ctx2.strokeStyle = color;
+  ctx2.lineWidth = width; ctx2.lineCap='round'; ctx2.lineJoin='round';
+  ctx2.beginPath(); ctx2.moveTo(x0,y0); ctx2.lineTo(x1,y1); ctx2.stroke();
+  ctx2.globalCompositeOperation = 'source-over';
+}
 function strokeTo(x0,y0,x1,y1){
-  bctx.globalCompositeOperation = selectedColor ? 'source-over' : 'destination-out';
-  bctx.strokeStyle = selectedColor || 'rgba(0,0,0,1)';
-  bctx.lineWidth = brushSize; bctx.lineCap='round'; bctx.lineJoin='round';
-  bctx.beginPath(); bctx.moveTo(x0,y0); bctx.lineTo(x1,y1); bctx.stroke();
-  bctx.globalCompositeOperation = 'source-over';
+  if(currentTool==='eraser'){
+    strokeSegment(bctx, x0,y0,x1,y1, eraserSize, 'destination-out', 'rgba(0,0,0,1)');
+  } else {
+    strokeSegment(lctx, x0,y0,x1,y1, brushSize, 'source-over', selectedColor);
+  }
   renderDrawCanvas();
+}
+function commitLiveStroke(){
+  bctx.globalAlpha = penOpacity;
+  bctx.drawImage(liveLayer, 0, 0);
+  bctx.globalAlpha = 1;
+  lctx.clearRect(0,0,TW,TH);
 }
 
 /* ---- undo/redo: snapshot the brush layer before each stroke / clear ---- */
@@ -758,7 +808,10 @@ drawCanvas.addEventListener('pointermove', function(e){
   if(lastPt) strokeTo(lastPt.x, lastPt.y, pt.x, pt.y);
   lastPt = pt;
 });
-window.addEventListener('pointerup', function(){ drawing=false; lastPt=null; });
+window.addEventListener('pointerup', function(){
+  if(drawing && currentTool==='pen'){ commitLiveStroke(); renderDrawCanvas(); }
+  drawing=false; lastPt=null;
+});
 
 /* ---- modal open/close/add ---- */
 var backdrop = document.getElementById('modalBackdrop');
@@ -774,6 +827,7 @@ backdrop.addEventListener('click', function(e){
 document.getElementById('clearDraw').addEventListener('click', function(){
   pushHistory();
   bctx.clearRect(0,0,TW,TH);
+  lctx.clearRect(0,0,TW,TH);
   renderDrawCanvas();
 });
 
