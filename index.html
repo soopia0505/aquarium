@@ -25,8 +25,8 @@
   /* ---------- top bar ---------- */
   .topbar{
     position:absolute; top:0; left:0; right:0;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; padding:14px 18px;
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    gap:10px; padding:14px 18px;
     z-index:10;
     pointer-events:none;
   }
@@ -42,6 +42,7 @@
     display:flex; gap:4px; background:rgba(18,22,28,.72);
     border:1px solid var(--panel-line); border-radius:999px; padding:4px;
     backdrop-filter:blur(6px);
+    max-width:100%; overflow-x:auto;
   }
   .tabs button{
     appearance:none; border:none; background:transparent; color:var(--ink-dim);
@@ -52,7 +53,7 @@
   .tabs button.active{ background:var(--tab-accent,#2a3138); color:var(--ink); }
   .tabs button:hover{ color:var(--ink); }
 
-  .actions{ display:flex; align-items:center; gap:10px; }
+  .actions{ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; }
   .pill-info{
     font-size:12px; color:var(--ink-dim); background:rgba(18,22,28,.72);
     border:1px solid var(--panel-line); padding:8px 12px; border-radius:999px;
@@ -60,6 +61,7 @@
   }
   .pill-info.sizectl{ display:flex; align-items:center; gap:7px; }
   .sizectl input[type="range"]{ width:70px; vertical-align:middle; accent-color:var(--accent); }
+  .sizectl .label-short{ display:none; }
 
   .fishpicker-wrap{ position:relative; }
   .fishcount-btn{
@@ -149,9 +151,18 @@
   .modal-footer{ display:flex; justify-content:space-between; gap:10px; margin-top:16px; }
   .modal-footer .left{ display:flex; gap:8px; }
 
-  @media (max-width:480px){
+  @media (max-width:700px){
     .brand{ display:none; }
+    .topbar{ justify-content:center; }
+    .actions{ justify-content:center; }
     .tool-row{ justify-content:center; }
+  }
+  @media (max-width:480px){
+    .sizectl .label-full{ display:none; }
+    .sizectl .label-short{ display:inline; }
+    .sizectl input[type="range"]{ width:56px; }
+    .pill-info{ padding:7px 10px; font-size:11px; }
+    .btn{ padding:8px 12px; font-size:12px; }
   }
 </style>
 </head>
@@ -168,7 +179,8 @@
       <div class="fish-dropdown" id="fishDropdown"></div>
     </div>
     <div class="pill-info sizectl" title="터널 속 물고기 전체 크기">
-      🐟 모든 물고기 크기 조정 <input type="range" id="fishScale" min="40" max="160" value="70">
+      🐟 <span class="label-full">모든 물고기 크기 조정</span><span class="label-short">크기</span>
+      <input type="range" id="fishScale" min="40" max="160" value="70">
     </div>
     <button class="btn btn-ghost" id="resetBtn">비우기</button>
     <button class="btn btn-primary" id="openDraw">+ 그림판 열기</button>
@@ -264,13 +276,21 @@ var currentTheme = localStorage.getItem('aq_theme_v1') || 'ocean';
 if(themeKeys.indexOf(currentTheme)===-1) currentTheme='ocean';
 
 /* ---- tunnel geometry: arc(x) returns y for top ceiling & bottom walkway ---- */
+/* the tunnel's curvature is tuned differently for a wide desktop window
+   (a flat, panoramic tube) vs. a tall phone screen (a rounder, portrait window) */
 function topArcY(x){
   var cx=W/2, t=(x-cx)/(W/2);
-  return H*0.05 + t*t*H*0.11;
+  var portrait = H>W;
+  var base = portrait ? H*0.09 : H*0.05;
+  var amp  = portrait ? W*0.30 : H*0.11;
+  return base + t*t*amp;
 }
 function bottomArcY(x){
   var cx=W/2, t=(x-cx)/(W/2);
-  return H*0.62 - t*t*H*0.10;
+  var portrait = H>W;
+  var base = portrait ? H*0.52 : H*0.62;
+  var amp  = portrait ? W*0.26 : H*0.10;
+  return base - t*t*amp;
 }
 function tunnelPath(){
   var p = new Path2D();
