@@ -82,6 +82,12 @@
   .fish-row img{ width:30px; height:30px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,.08); flex:0 0 auto; }
   .fish-row input[type="range"]{ flex:1; min-width:0; accent-color:var(--accent); }
   .fish-row .pct{ font-size:11px; color:var(--ink-dim); width:36px; text-align:right; font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  .fish-del-btn{
+    appearance:none; border:none; background:transparent; color:var(--ink-dim);
+    font-size:13px; line-height:1; cursor:pointer; padding:4px 6px;
+    border-radius:6px; flex:0 0 auto; font-family:inherit;
+  }
+  .fish-del-btn:hover{ color:#ff7a7a; background:rgba(255,255,255,.08); }
   .btn{
     appearance:none; border:1px solid var(--panel-line); cursor:pointer;
     font-family:inherit; font-weight:700; font-size:13px;
@@ -698,6 +704,21 @@ function renderFishDropdown(){
       pct.textContent = e.target.value+'%';
       persistFishesSoon();
     });
+
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'fish-del-btn';
+    delBtn.title = '이 물고기 삭제';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var idx = fishes.indexOf(f);
+      if(idx>-1) fishes.splice(idx,1);
+      updateFishCount();
+      persistFishes();
+      renderFishDropdown();
+    });
+    row.appendChild(delBtn);
 
     fishDropdown.appendChild(row);
   });
