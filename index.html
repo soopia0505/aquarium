@@ -1037,13 +1037,11 @@ function styleBrushCursor(){
 }
 function positionBrushCursorAt(e){
   var rect = drawCanvas.getBoundingClientRect();
-  var lx = e.clientX-rect.left, ly = e.clientY-rect.top;
-  // a finger physically covers the spot it's touching, so float the
-  // preview above the fingertip for touch input; mouse/pen have no such
-  // occlusion, so keep it exactly under the cursor there.
-  var offsetY = (e.pointerType==='touch') ? -48 : 0;
-  brushCursor.style.left = lx+'px';
-  brushCursor.style.top = (ly+offsetY)+'px';
+  var lx = e.clientX - rect.left;
+  var ly = e.clientY - rect.top;
+
+  brushCursor.style.left = lx + 'px';
+  brushCursor.style.top = ly + 'px';
 }
 var sizePreviewHideTimer = null;
 function showSizePreviewAtCenter(){
